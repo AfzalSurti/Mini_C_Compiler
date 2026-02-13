@@ -50,12 +50,12 @@ class Parser:
             self.eat("EQUALS")
             expr=self.parse_expr()
             self.eat("SEMI")
-            return varDec1(name,expr)
+            return VarDec1(name,expr)
         
 
         elif self.current().type == "PRINT":
             self.eat("PRINT")
-            self.eat("LPEARN")
+            self.eat("LPAREN")
             expr=self.parse_expr()
             self.eat("RPAREN")
             self.eat("SEMI")
