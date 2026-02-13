@@ -1,4 +1,4 @@
-from dataclass import dataclass
+from dataclasses import dataclass
 
 @dataclass
 class Number:
@@ -15,6 +15,7 @@ class BinOp: # BinOp stands for Binary Operation, which is an operation that tak
     op:str
     right:any
 
+@dataclass
 class VarDec1: # The VarDec1 class is used to represent a variable declaration in the abstract syntax tree (AST) of the compiler. It has two attributes: name, which is a string representing the name of the variable being declared, and expr, which can be any expression that represents the initial value of the variable. For example, if we have a variable declaration like "int a = 5 + 3;", the name attribute would be "a" and the expr attribute would represent the expression "5 + 3" as a BinOp node in the AST.
     name:str
     expr:any
