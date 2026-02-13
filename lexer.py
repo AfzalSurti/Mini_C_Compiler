@@ -59,7 +59,8 @@ def tokenize(src: str) ->List[Token]:
 
             num=src[start:i]
             tokens.append(Token("NUM",num,i))
-
+            continue
+        
         if ch in SINGLE_CHAR_TOKENS:
             tokens.append(Token(SINGLE_CHAR_TOKENS[ch],ch,i))
             i+=1
