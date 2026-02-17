@@ -2,6 +2,7 @@ from lexer import tokenize
 from parser import Parser
 from semantic import SemanticAnalyzer
 from ir_generation import IRGenerator
+from ir_vm import IRVM
 
 source_code = """ int a = 5 + 3 * 2;
 print(a);"""
@@ -30,3 +31,7 @@ print("IR code: ")
 
 for instruction in ir:
     print(instruction)
+
+vm=IRVM()
+
+vm.run(ir)
