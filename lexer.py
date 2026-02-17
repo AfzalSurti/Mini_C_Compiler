@@ -11,6 +11,7 @@ SINGLE_CHAR_TOKENS={
     ";" :"SEMI",
     "+" :"PLUS",
     "*" : "STAR",
+    "-" : "MINUS",
     "/": "SLASH",
     "=": "EQUALS"
 
