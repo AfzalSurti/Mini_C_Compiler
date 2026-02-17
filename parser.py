@@ -22,21 +22,45 @@ class Parser:
             self.eat("NUM")
             return Number(int(token.value))
 
-        elif token.type=="ID":
+        if token.type=="ID":
             self.eat("ID")
             return Variable(token.value)
+        
+        if token.type=="LPAREN":
+            self.eat("LPAREN")
+            node=self.parse_expr()
+            self.eaat("RPAREN")
+            return node
 
-        else:
-            raise Exception("Invalid factor")
+        
+        raise Exception(f"Invalid factor: {token.type}")
 
+    def parse_term(self):
+        left=self.parse_factor()
+
+        while self.current().type in ("STAR","SLASH"):
+            op=self.current()
+            if op.type=="STAR":
+                self.eat("STAR")
+            else:
+                self.eat("SLASH")
+
+            right=self.parse_factor()
+            left=BinOp(left,op.value,right)
+        return left
 
     def parse_expr(self):
-        left=self.parse_factor()
+        left=self.parse_term()
         
 
-        while self.current().type=="PLUS":
-            op=self.eat("PLUS")
-            right=self.parse_factor()
+        while self.current().type in ("PLUS","MINUS"):
+            op=self.current()
+            if op.type=="PLUS":
+                self.eat("PLUS")
+            else:
+                self.eat("MINUS")
+
+            right=self.parse_term()
             left=BinOp(left,op.value,right) # the left variable is updated to a new BinOp node that represents the addition operation. The left operand of the BinOp node is the previously parsed left expression, the operator is the value of the PLUS token, and the right operand is the newly parsed right expression. This allows for chaining multiple addition operations
             # here we do the left recursion
 
