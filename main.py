@@ -3,6 +3,7 @@ from parser import Parser
 from semantic import SemanticAnalyzer
 from ir_generation import IRGenerator
 from ir_vm import IRVM
+from optimizer import Optimizer
 
 source_code = """ int a = 5 + 3 * 2;
 print(a);"""
@@ -32,6 +33,13 @@ print("IR code: ")
 for instruction in ir:
     print(instruction)
 
+opt=Optimizer()
+
+optimized_ir=opt.optimize(ir)
+print("optimized ir code:")
+for instruction in optimized_ir:
+    print(instruction)
+
 vm=IRVM()
 
-vm.run(ir)
+vm.run(optimized_ir)
