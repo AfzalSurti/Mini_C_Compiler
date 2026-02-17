@@ -4,6 +4,7 @@ from semantic import SemanticAnalyzer
 from ir_generation import IRGenerator
 from ir_vm import IRVM
 from optimizer import Optimizer
+from codegen import CodeGen
 
 source_code = """ int a = 5 + 3 * 2;
 print(a);"""
@@ -36,9 +37,19 @@ for instruction in ir:
 opt=Optimizer()
 
 optimized_ir=opt.optimize(ir)
+
 print("optimized ir code:")
 for instruction in optimized_ir:
     print(instruction)
+
+cg=CodeGen()
+
+assembly_code=cg.generate(optimized_ir)
+
+print("assembly code:")
+
+for line in assembly_code:
+    print(line)
 
 vm=IRVM()
 
