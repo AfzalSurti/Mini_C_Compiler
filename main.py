@@ -5,6 +5,7 @@ from ir_generation import IRGenerator
 from ir_vm import IRVM
 from optimizer import Optimizer
 from codegen import CodeGen
+from llvm_codegen import LLVMCodeGen
 
 source_code = """ int a = 5 + 3 * 2;
 print(a);"""
@@ -54,3 +55,10 @@ for line in assembly_code:
 vm=IRVM()
 
 vm.run(optimized_ir)
+
+llvm=LLVMCodeGen().generate(optimized_ir)
+
+with open("out.ll","w",encoding="utf-8") as f:
+    f.write(llvm)
+
+print("wrote LLVM IR to out.ll")
