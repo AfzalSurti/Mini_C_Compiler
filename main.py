@@ -43,18 +43,8 @@ print("optimized ir code:")
 for instruction in optimized_ir:
     print(instruction)
 
-cg=CodeGen()
 
-assembly_code=cg.generate(optimized_ir)
 
-print("assembly code:")
-
-for line in assembly_code:
-    print(line)
-
-vm=IRVM()
-
-vm.run(optimized_ir)
 
 llvm=LLVMCodeGen().generate(optimized_ir)
 
