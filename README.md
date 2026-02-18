@@ -245,7 +245,7 @@ Mini_C_Compiler/
 ├── lexer.py          # Tokenization
 ├── parser.py         # AST builder
 ├── semantic.py       # Meaning validation
-├── ir_gen.py         # AST → IR
+├── ir_generation.py  # AST → IR
 ├── optimizer.py      # IR optimization
 ├── llvm_codegen.py   # IR → LLVM IR
 ├── main.py           # Driver pipeline
@@ -298,6 +298,55 @@ Input:
 int a = 5 + 3 * 2;
 print(a);
 ```
+
+Output:
+
+```bash
+wrote LLVM IR to out.ll
+(base) PS C:\Mini_C_Compiler> python main.py
+INT      'int' (pos=1)
+ID       'a' (pos=5)
+EQUALS   '=' (pos=7)
+NUM      '5' (pos=9)
+PLUS     '+' (pos=11)
+NUM      '3' (pos=13)
+STAR     '*' (pos=15)
+NUM      '2' (pos=17)
+SEMI     ';' (pos=18)
+PRINT    'print' (pos=20)
+LPAREN   '(' (pos=25)
+ID       'a' (pos=26)
+RPAREN   ')' (pos=27)
+SEMI     ';' (pos=28)
+EOF      None (pos=29)
+[VarDec1(name='a', expr=BinOp(left=Number(value=5), op='+', right=BinOp(left=Number(value=3), op='*', right=Number(value=2)))), Print(expr=Variable(name='a'))]     
+Semantic phase is passed
+IR code:
+('BINOP', 't1', '*', 3, 2)
+('BINOP', 't2', '+', 5, 't1')
+('STORE', 'a', 't2')
+('PRINT', 'a')
+optimized ir code:
+('STORE', 't1', 6)
+('BINOP', 't2', '+', 5, 't1')
+('STORE', 'a', 't2')
+('PRINT', 'a')
+wrote LLVM IR to out.ll
+
+```
+
+and then we have to go to the build tool of vs code for c,c++ and in  that terminal using clang we have to compile and then we get this 
+
+```bash
+
+C:\Mini_C_Compiler>clang out.ll -fuse-ld=lld -o program.exe
+warning: overriding the module target triple with x86_64-pc-windows-msvc19.44.35222 [-Woverride-module]
+1 warning generated.
+
+C:\Mini_C_Compiler>program.exe
+11
+```
+
 
 Compiler Output Flow:
 
