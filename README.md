@@ -267,8 +267,19 @@ python main.py
 First Download This - https://aka.ms/vs/17/release/vs_BuildTools.exe
 After Installing it - ✔ Select Desktop development with C++.
 
+### For windows
 ```bash
 clang out.ll -o program.exe
+```
+
+### For Linux
+```bash
+clang --target=x86_64-linux-gnu out.ll -o program
+```
+
+### For ARM(Mac M1)
+```bash
+clang --target=arm64-apple-macos out.ll -o program
 ```
 
 ### 3️⃣ Execute
