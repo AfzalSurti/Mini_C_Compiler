@@ -34,9 +34,9 @@ class LLVMCodeGen:
         raise Exception(f"LLVM: unsupported value {x} of type {type(x)}")
     
     def header(self):
-        self.lines.append(':-- minic llvm ir') # the header method is used to add a header comment to the generated LLVM IR code. It appends a string ':-- minic llvm ir' to the lines list, which serves as a comment indicating that the following code is generated LLVM IR for the Mini C compiler. This can be useful for documentation and debugging purposes, as it provides context about the origin of the generated code.
+        self.lines.append('; --- MiniC LLVM IR ---')
         self.lines.append('declare i32 @printf(i8*,...)') # the header method is used to add a declaration for the printf function in the generated LLVM IR code. It appends the string 'declare i32 @printf(i8*,...)' to the lines list, which declares the printf function as an external function that takes a format string (i8*) and a variable number of arguments (...). This allows the generated LLVM IR code to use the printf function for output, which is commonly used in C programs for printing to the console. By declaring it in the header, we ensure that the generated code can call printf without any issues during linking or execution.
-        self.lines.append('@.fmt=private unnamed_addr constant [4 x i8] c"%d\\0A\\00"') # the header method is used to add a constant string declaration for the format string used in printf. It appends the string '@.fmt=private unnamed_addr constant [4 x i8] c"%d\\0A\\00"' to the lines list, which declares a constant string named @.fmt that contains the format specifier "%d\n\0". This format string is used in printf to specify that we want to print an integer followed by a newline character. By declaring it as a constant, we can reference it in the generated LLVM IR code when calling printf, ensuring that the correct format string is used for output.
+        self.lines.append('@.fmt = private unnamed_addr constant [4 x i8] c"%d\\0A\\00"')
         self.lines.append('') # the header method adds an empty line to the generated LLVM IR code for better readability and separation between the header declarations and the main function definition. This helps to visually distinguish the different sections of the generated code, making it easier to read and understand.
         self.lines.append('define i32 @main(){') # the header method is used to add the function definition for the main function in the generated LLVM IR code. It appends the string 'define i32 @main(){' to the lines list, which defines a function named main that returns an integer (i32). This serves as the entry point for the generated code, as the main function is typically where the execution of a C program begins. By defining it in the header, we ensure that the generated LLVM IR code has a proper structure and can be executed correctly when compiled and linked.
         self.lines.append('entry:')
@@ -103,9 +103,9 @@ class LLVMCodeGen:
                 v=self.llvm_val(value)
                 r=self.new_reg()
                 self.lines.append(
-                    f" {r}=call i32 (i8*,...) @printf(i8* getelementptr inbounds)"
-                    f"([4 x i8], [4 x i8]* @.ft,i32 0,i32 0),i32 {v})" # the generate method is used to generate LLVM IR code for a given list of IR instructions. When it encounters a PRINT instruction, it retrieves the LLVM IR representation of the value to be printed using the llvm_val method. It then generates a new register name (r) for the result of the printf call. Finally, it appends a call instruction to the lines list, which calls the printf function with the appropriate format string and the value to be printed. This allows for proper handling of print statements in the generated LLVM IR code.
-
+                    f"  {r} = call i32 (i8*, ...) @printf("
+                    f"i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.fmt, i32 0, i32 0), "
+                    f"i32 {v})"
                 )
                 continue
 
