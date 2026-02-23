@@ -1,5 +1,12 @@
 import os,tempfile,subprocess,textwrap # for temporary file handling and subprocess execution
+import re
+import sys
+from pathlib import Path
 from typing import Dict , Any, List, Tuple # for type annotations
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from lexer import tokenize # for lexical analysis
 from parser import Parser # for parsing the tokens into an abstract syntax tree (AST)
@@ -8,6 +15,32 @@ from ir_generation import IRGenerator # for generating intermediate representati
 from optimizer import Optimizer # for optimizing the IR
 from llvm_codegen import LLVMCodeGen
 from ir_vm import   IRVM
+
+
+def _offset_to_line_col(source: str, offset: int) -> Tuple[int, int]:
+    if offset < 0:
+        offset = 0
+    if offset > len(source):
+        offset = len(source)
+
+    line = source.count("\n", 0, offset) + 1
+    last_newline = source.rfind("\n", 0, offset)
+    column = offset + 1 if last_newline == -1 else (offset - last_newline)
+    return line, column
+
+
+def _format_error_with_source(source: str, message: str) -> str:
+    match = re.search(r"(?:position|pos)\s*(\d+)", message)
+    if not match:
+        return message
+
+    offset = int(match.group(1))
+    line, column = _offset_to_line_col(source, offset)
+    lines = source.splitlines()
+    source_line = lines[line - 1] if 1 <= line <= len(lines) else ""
+    caret_line = (" " * max(column - 1, 0)) + "^"
+
+    return f"{message}\nAt line {line}, column {column}\n{source_line}\n{caret_line}"
 
 def run_pipeline(code: str,mode:str="irvm")->Dict[str,Any]:
     """
@@ -45,6 +78,18 @@ def run_pipeline(code: str,mode:str="irvm")->Dict[str,Any]:
         analyzer=SemanticAnalyzer()
         for stmt in ast:
             analyzer.visit(stmt)
+
+        if mode=="native":
+            for name,info in analyzer.symbol_table.items():
+                if info["is_array"] or info["type"] != "int":
+                    result["stderr"]=f"Native mode supports only int scalars. '{name}' is {info['type']}"
+                    result["phase"]="native_not_supported"
+                    return result
+
+            if any(t in ("float","double","string") for t in analyzer.used_types):
+                result["stderr"]="Native mode supports only int expressions."
+                result["phase"]="native_not_supported"
+                return result
 
         #IR generation
         result["phase"]="ir"
@@ -125,7 +170,7 @@ def run_pipeline(code: str,mode:str="irvm")->Dict[str,Any]:
     
 
     except Exception as e:
-        result["stderr"]=str(e)
+        result["stderr"]=_format_error_with_source(code, str(e))
         result["phase"]=f"error_in_{result['phase']}"
         return result
     

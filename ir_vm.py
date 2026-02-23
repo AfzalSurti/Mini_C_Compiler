@@ -4,6 +4,13 @@ class IRVM:
     def __init__(self):
         self.env={}
 
+    def default_value(self,var_type):
+        if var_type in ("float","double"):
+            return 0.0
+        if var_type=="string":
+            return ""
+        return 0
+
     def resolve(self,x):
         """
         x can be:
@@ -11,8 +18,11 @@ class IRVM:
         - str like "a" or "t1" (variable/temp name)
         """
 
-        if isinstance(x,int):
+        if isinstance(x,(int,float)):
             return x
+
+        if isinstance(x,tuple) and len(x)==2 and x[0]=="STR":
+            return x[1]
         
         if isinstance(x,str):
             if x not in self.env:
@@ -26,8 +36,15 @@ class IRVM:
         for inst in instructions:
             op=inst[0]
 
+            if op=="DECL_ARRAY":
+                _,name,var_type,size=inst
+                self.env[name]=[self.default_value(var_type) for _ in range(size)]
+                continue
+
             if op=="STORE":
                 _, name ,value=inst # unpacking the tuple 
+                if isinstance(self.env.get(name),list):
+                    raise Exception(f"Runtime error : '{name}' is an array; use indexing")
                 self.env[name]=self.resolve(value) # the resolve method is used to get the value of the variable or temporary variable. It checks if the value is an integer literal or a string representing a variable name. If it is an integer literal, it returns the integer value. If it is a string, it looks up the value in the environment dictionary (self.env) and returns it. If the variable name is not found in the environment, it raises a runtime error.
                 
             elif op=="BINOP":
@@ -45,7 +62,10 @@ class IRVM:
                     self.env[temp]=l*r
 
                 elif operator=="/":
-                    self.env[temp]=l//r
+                    if isinstance(l,float) or isinstance(r,float):
+                        self.env[temp]=l/r
+                    else:
+                        self.env[temp]=l//r
 
                 else:
                     raise Exception(f"runtime error: unknown error {operator}")
@@ -54,6 +74,30 @@ class IRVM:
             elif op=="PRINT":
                 _,value=inst
                 print(self.resolve(value))
+
+            elif op=="LOAD_INDEX":
+                _,temp,name,index_val=inst
+                idx=self.resolve(index_val)
+                if not isinstance(idx,int):
+                    raise Exception("Runtime error : array index must be int")
+                arr=self.env.get(name)
+                if not isinstance(arr,list):
+                    raise Exception(f"Runtime error : '{name}' is not an array")
+                if idx<0 or idx>=len(arr):
+                    raise Exception(f"Runtime error : array index out of bounds")
+                self.env[temp]=arr[idx]
+
+            elif op=="STORE_INDEX":
+                _,name,index_val,value_val=inst
+                idx=self.resolve(index_val)
+                if not isinstance(idx,int):
+                    raise Exception("Runtime error : array index must be int")
+                arr=self.env.get(name)
+                if not isinstance(arr,list):
+                    raise Exception(f"Runtime error : '{name}' is not an array")
+                if idx<0 or idx>=len(arr):
+                    raise Exception(f"Runtime error : array index out of bounds")
+                arr[idx]=self.resolve(value_val)
 
             else:
                 raise Exception(f"runtime error: unknown instruction {op}")

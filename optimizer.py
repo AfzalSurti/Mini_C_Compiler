@@ -8,7 +8,7 @@ class Optimizer:
             if op=="BINOP":
                 _,dest,operator,left,right=inst
 
-                if isinstance(left,int) and isinstance(right,int):
+                if isinstance(left,(int,float)) and isinstance(right,(int,float)):
                     result=self.eval_const(operator,left,right)
                     out.append(("STORE",dest,result))
 
@@ -32,6 +32,8 @@ class Optimizer:
             return a*b
         
         if operator =='/':
+            if isinstance(a,float) or isinstance(b,float):
+                return a/b
             return a//b
         
         raise Exception(f"Unknown operator {operator}")

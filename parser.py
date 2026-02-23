@@ -11,29 +11,54 @@ class Parser:
     def eat(self,token_type): # the eat method is used to consume a token of a specific type. It checks if the current token matches the expected token type, and if it does, it advances the position to the next token. If the current token does not match the expected token type, it raises a SyntaxError.
         token=self.current() # the current token is stored in the variable token for further processing.
         if token.type !=token_type:
-            raise Exception(f"expected {token_type},got{token.type}")
+            raise Exception(f"Syntax error at pos {token.pos}: expected {token_type}, got {token.type}")
         self.pos+=1
         return token
+
+    def peek(self):
+        if self.pos+1 < len(self.tokens):
+            return self.tokens[self.pos+1]
+        return self.tokens[self.pos]
+
+    def parse_type(self):
+        token=self.current()
+        if token.type in ("INT","FLOAT","DOUBLE","STRING_TYPE"):
+            self.eat(token.type)
+            return token.value
+        raise Exception(f"Syntax error at pos {token.pos}: expected type keyword")
     
     def parse_factor(self): # the parse_factor method is used to parse a factor in the expression. A factor can be a number, a variable, or an expression enclosed in parentheses. The method checks the type of the current token and returns the appropriate AST node based on the token type.
         token=self.current()
         
         if token.type=="NUM":
             self.eat("NUM")
-            return Number(int(token.value))
+            return Number(int(token.value), "int", token.pos)
+
+        if token.type=="FLOAT_NUM":
+            self.eat("FLOAT_NUM")
+            return Number(float(token.value), "float", token.pos)
+
+        if token.type=="STRING":
+            self.eat("STRING")
+            return StringLiteral(token.value, token.pos)
 
         if token.type=="ID":
-            self.eat("ID")
-            return Variable(token.value)
+            name_token=self.eat("ID")
+            if self.current().type=="LBRACKET":
+                self.eat("LBRACKET")
+                index_expr=self.parse_expr()
+                self.eat("RBRACKET")
+                return ArrayAccess(name_token.value, index_expr, name_token.pos)
+            return Variable(name_token.value, name_token.pos)
         
         if token.type=="LPAREN":
             self.eat("LPAREN")
             node=self.parse_expr()
-            self.eaat("RPAREN")
+            self.eat("RPAREN")
             return node
 
         
-        raise Exception(f"Invalid factor: {token.type}")
+        raise Exception(f"Syntax error at pos {token.pos}: invalid factor {token.type}")
 
     def parse_term(self):
         left=self.parse_factor()
@@ -46,7 +71,7 @@ class Parser:
                 self.eat("SLASH")
 
             right=self.parse_factor()
-            left=BinOp(left,op.value,right)
+            left=BinOp(left,op.value,right,op.pos)
         return left
 
     def parse_expr(self):
@@ -61,31 +86,63 @@ class Parser:
                 self.eat("MINUS")
 
             right=self.parse_term()
-            left=BinOp(left,op.value,right) # the left variable is updated to a new BinOp node that represents the addition operation. The left operand of the BinOp node is the previously parsed left expression, the operator is the value of the PLUS token, and the right operand is the newly parsed right expression. This allows for chaining multiple addition operations
+            left=BinOp(left,op.value,right,op.pos) # the left variable is updated to a new BinOp node that represents the addition operation. The left operand of the BinOp node is the previously parsed left expression, the operator is the value of the PLUS token, and the right operand is the newly parsed right expression. This allows for chaining multiple addition operations
             # here we do the left recursion
 
         return left
     
     def parse_statement(self):
 
-        if self.current().type =="INT": 
-            self.eat("INT") # the eat method is called to consume the INT token, which indicates the start of a variable declaration statement.
-            name=self.eat("ID").value # the eat method is called again to consume the ID token, which represents the name of the variable being declared. The value of the ID token is stored in the name variable for later use in creating a VarDec1 node in the abstract syntax tree (AST).
+        if self.current().type in ("INT","FLOAT","DOUBLE","STRING_TYPE"):
+            type_token=self.current()
+            var_type=self.parse_type() # the eat method is called to consume the type token, which indicates the start of a variable declaration statement.
+            name_token=self.eat("ID") # the eat method is called again to consume the ID token, which represents the name of the variable being declared.
+            is_array=False
+            array_size=None
+
+            if self.current().type=="LBRACKET":
+                self.eat("LBRACKET")
+                size_token=self.eat("NUM")
+                array_size=int(size_token.value)
+                self.eat("RBRACKET")
+                is_array=True
+
+            expr=None
+            if self.current().type=="EQUALS":
+                if is_array:
+                    raise Exception(f"Syntax error at pos {type_token.pos}: array initialization not supported")
+                self.eat("EQUALS")
+                expr=self.parse_expr()
+
+            self.eat("SEMI")
+            return VarDec1(name_token.value, var_type, expr, is_array, array_size, type_token.pos)
+
+        elif self.current().type=="ID":
+            name_token=self.eat("ID")
+            target=Variable(name_token.value, name_token.pos)
+
+            if self.current().type=="LBRACKET":
+                self.eat("LBRACKET")
+                index_expr=self.parse_expr()
+                self.eat("RBRACKET")
+                target=ArrayAccess(name_token.value, index_expr, name_token.pos)
+
             self.eat("EQUALS")
             expr=self.parse_expr()
             self.eat("SEMI")
-            return VarDec1(name,expr)
+            return Assign(target,expr,name_token.pos)
         
 
         elif self.current().type == "PRINT":
-            self.eat("PRINT")
+            print_token=self.eat("PRINT")
             self.eat("LPAREN")
             expr=self.parse_expr()
             self.eat("RPAREN")
             self.eat("SEMI")
-            return Print(expr)
+            return Print(expr, print_token.pos)
         else:
-            raise Exception("Invalid statement")
+            token=self.current()
+            raise Exception(f"Syntax error at pos {token.pos}: invalid statement starting with {token.type}")
         
     def parse(self):
         statements=[]

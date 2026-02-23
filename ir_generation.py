@@ -7,7 +7,7 @@
 #   ("PRINT", "a")
 # ]
 
-from ast_nodes import Number,VarDec1,BinOp,Variable,Print
+from ast_nodes import Number,StringLiteral,VarDec1,Assign,BinOp,Variable,ArrayAccess,Print
 
 class IRGenerator:
 
@@ -27,8 +27,25 @@ class IRGenerator:
     
     def gen_stmt(self,node):
         if isinstance(node,VarDec1): # node.__class__.__name___="VarDec1"
-            rhs=self.gen_expr(node.expr)
+            if node.is_array:
+                self.instructions.append(("DECL_ARRAY",node.name,node.var_type,node.array_size))
+                return
+
+            rhs=self.default_value(node.var_type) if node.expr is None else self.gen_expr(node.expr)
             self.instructions.append(("STORE",node.name,rhs))
+
+            return
+
+        if isinstance(node,Assign):
+            rhs=self.gen_expr(node.expr)
+
+            if isinstance(node.target,Variable):
+                self.instructions.append(("STORE",node.target.name,rhs))
+            elif isinstance(node.target,ArrayAccess):
+                index_val=self.gen_expr(node.target.index)
+                self.instructions.append(("STORE_INDEX",node.target.name,index_val,rhs))
+            else:
+                raise Exception(f"IR: Unknown assignment target:{type(node.target).__name__}")
 
             return
         
@@ -42,9 +59,18 @@ class IRGenerator:
     def gen_expr(self,node):
         if isinstance(node,Number):
             return node.value
+
+        if isinstance(node,StringLiteral):
+            return ("STR",node.value)
         
         if isinstance(node,Variable):
             return node.name
+
+        if isinstance(node,ArrayAccess):
+            index_val=self.gen_expr(node.index)
+            temp=self.new_temp()
+            self.instructions.append(("LOAD_INDEX",temp,node.name,index_val))
+            return temp
         
         if isinstance(node,BinOp):
             left_val=self.gen_expr(node.left)
@@ -56,4 +82,11 @@ class IRGenerator:
             return temp
         
         raise Exception(f"IR::unknown expression node:{type(node).__name__}")
+
+    def default_value(self,var_type):
+        if var_type in ("float","double"):
+            return 0.0
+        if var_type=="string":
+            return ("STR","")
+        return 0
     
